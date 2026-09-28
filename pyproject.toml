@@ -1,0 +1,31 @@
+[project]
+name = "customer-support-agent"
+version = "0.1.0"
+description = "LangGraph customer-support agent with MCP tools, RAG policies, Tavily search and human handoff."
+requires-python = ">=3.11"
+dependencies = [
+    "langgraph>=0.2",
+    "langchain-core>=0.3",
+    "langchain-openai>=0.2",  # OpenAI-compatible client, pointed at OpenRouter
+    "mcp>=2.2,<3",
+    "tavily-python>=0.5",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.3",
+    "python-dotenv>=1.0",
+    "scikit-learn>=1.4",
+    "fastapi>=0.115",
+    "uvicorn>=0.30",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "pytest-asyncio>=0.23"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
