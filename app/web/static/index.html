@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Support Agent</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #667085; --border: #e3e6eb;
+    --accent: #2f6fed; --accent-text: #ffffff; --user: #2f6fed; --agent: #eef1f5;
+    --ok: #1a7f4b; --ok-bg: #e6f4ec; --warn: #a15c00; --warn-bg: #fdf1dc; --danger: #b42318; --danger-bg: #fdecea;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12151b; --panel: #1a1f27; --text: #e6e9ef; --muted: #98a2b3; --border: #2b323d;
+      --accent: #5b8cff; --accent-text: #0d1117; --user: #3d6fe0; --agent: #232a35;
+      --ok: #5ccf8e; --ok-bg: #173325; --warn: #f0b35a; --warn-bg: #362a14; --danger: #ff8a80; --danger-bg: #3a1d1b;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 20px;
+           border-bottom: 1px solid var(--border); background: var(--panel); flex-wrap: wrap; }
+  header h1 { font-size: 17px; margin: 0; }
+  .meta { display: flex; gap: 8px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+  .pill { border: 1px solid var(--border); border-radius: 999px; padding: 2px 10px; }
+  main { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 16px; padding: 16px 20px; max-width: 1280px; margin: 0 auto; }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; }
+  .panel h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+  .chat { display: flex; flex-direction: column; height: calc(100vh - 100px); min-height: 480px; }
+  #messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+  .msg { max-width: 82%; padding: 10px 14px; border-radius: 14px; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .msg.user { align-self: flex-end; background: var(--user); color: #fff; border-bottom-right-radius: 4px; }
+  .msg.agent { align-self: flex-start; background: var(--agent); border-bottom-left-radius: 4px; }
+  .msg.agent a { color: var(--accent); }
+  .msg.system { align-self: center; font-size: 13px; color: var(--muted); background: none; padding: 2px; }
+  .typing { color: var(--muted); font-style: italic; }
+  .suggestions { display: flex; gap: 6px; flex-wrap: wrap; padding: 0 16px 10px; }
+  .suggestions button { font: inherit; font-size: 13px; background: none; color: var(--text); border: 1px solid var(--border);
+                        border-radius: 999px; padding: 4px 10px; cursor: pointer; }
+  .suggestions button:hover { border-color: var(--accent); }
+  form { display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--border); }
+  input[type=text] { flex: 1; min-width: 0; font: inherit; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border);
+                     background: var(--bg); color: var(--text); }
+  button.primary { font: inherit; font-weight: 600; padding: 10px 18px; border: 0; border-radius: 10px; background: var(--accent); color: var(--accent-text); cursor: pointer; }
+  button.primary:disabled { opacity: .5; cursor: default; }
+  button.ghost { font: inherit; font-size: 13px; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border); background: none; color: var(--text); cursor: pointer; }
+  aside { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .body { padding: 12px 16px; }
+  dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 0; font-size: 14px; }
+  dt { color: var(--muted); } dd { margin: 0; }
+  #activity { list-style: none; margin: 0; padding: 0; font-size: 14px; max-height: 260px; overflow-y: auto; }
+  #activity li { padding: 3px 0; }
+  #activity li::before { content: "✓ "; color: var(--ok); font-weight: 700; }
+  #activity li.warn::before { content: "! "; color: var(--warn); }
+  #activity li.turn { color: var(--muted); font-size: 12px; margin-top: 6px; }
+  #activity li.turn::before { content: ""; }
+  .badge { display: inline-block; font-size: 13px; font-weight: 600; border-radius: 999px; padding: 3px 10px; }
+  .badge.ok { background: var(--ok-bg); color: var(--ok); }
+  .badge.danger { background: var(--danger-bg); color: var(--danger); }
+  .summary h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .03em; color: var(--muted); margin: 12px 0 2px; }
+  .summary p, .summary ul { margin: 0; font-size: 14px; }
+  .summary ul { padding-left: 18px; }
+  .empty { color: var(--muted); font-size: 14px; }
+  @media (max-width: 860px) {
+    main { grid-template-columns: 1fr; padding: 12px 16px; }
+    .chat { height: 70vh; }
+    .msg { max-width: 92%; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Customer Support</h1>
+  <div class="meta">
+    <span class="pill" id="customer">Customer: …</span>
+    <span class="pill" id="mode">Triage: …</span>
+    <span class="pill" id="web">Web search: …</span>
+    <button class="ghost" id="reset" type="button">New conversation</button>
+  </div>
+</header>
+
+<main>
+  <section class="panel chat" aria-label="Customer chat">
+    <h2>Customer chat</h2>
+    <div id="messages" aria-live="polite"></div>
+    <div class="suggestions" id="suggestions"></div>
+    <form id="form">
+      <input type="text" id="input" autocomplete="off" placeholder="Ask about an order, return, refund…" maxlength="2000" aria-label="Message">
+      <button class="primary" id="send" type="submit">Send</button>
+    </form>
+  </section>
+
+  <aside>
+    <section class="panel" aria-label="Order and customer context">
+      <h2>Context</h2>
+      <div class="body">
+        <dl>
+          <dt>Customer</dt><dd id="ctx-customer">—</dd>
+          <dt>Order</dt><dd id="ctx-order">—</dd>
+          <dt>Status</dt><dd id="ctx-status">—</dd>
+        </dl>
+      </div>
+    </section>
+
+    <section class="panel" aria-label="Tool activity">
+      <h2>Tool activity</h2>
+      <div class="body"><ul id="activity"><li class="turn empty">No activity yet.</li></ul></div>
+    </section>
+
+    <section class="panel" aria-label="Human handoff">
+      <h2>Human handoff</h2>
+      <div class="body" id="handoff">
+        <span class="badge ok">Automated</span>
+        <p class="empty">No escalation in this conversation.</p>
+      </div>
+    </section>
+  </aside>
+</main>
+
+<script>
+const SUGGESTIONS = [
+  "Where is my order #10245?",
+  "I want to return the shoes I bought last week.",
+  "My refund still hasn't arrived after 10 days.",
+  "This is the third time my order is late. I want to speak to a manager.",
+  "Where is order #10300?",
+  "What is your return policy?",
+];
+const $ = (id) => document.getElementById(id);
+let sessionId = null, turn = 0, busy = false;
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, (c) => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
+}
+function linkify(text) {
+  return escapeHtml(text).replace(/https?:\/\/[^\s)]+/g, (u) => `<a href="${u}" target="_blank" rel="noopener noreferrer">${u}</a>`);
+}
+function addMessage(role, text) {
+  const div = document.createElement("div");
+  div.className = `msg ${role}`;
+  if (role === "agent") div.innerHTML = linkify(text); else div.textContent = text;
+  $("messages").appendChild(div);
+  $("messages").scrollTop = $("messages").scrollHeight;
+  return div;
+}
+function renderSuggestions() {
+  $("suggestions").innerHTML = "";
+  for (const s of SUGGESTIONS) {
+    const b = document.createElement("button");
+    b.type = "button"; b.textContent = s;
+    b.onclick = () => send(s);
+    $("suggestions").appendChild(b);
+  }
+}
+function addActivity(items) {
+  const list = $("activity");
+  if (turn === 1) list.innerHTML = "";
+  const head = document.createElement("li");
+  head.className = "turn"; head.textContent = `Message ${turn}`;
+  list.appendChild(head);
+  if (!items.length) {
+    const li = document.createElement("li"); li.className = "turn"; li.textContent = "No tools needed";
+    list.appendChild(li);
+  }
+  for (const a of items) {
+    const li = document.createElement("li");
+    if (/could not|blocked|failed|not eligible/i.test(a)) li.className = "warn";
+    li.textContent = a;
+    list.appendChild(li);
+  }
+  list.scrollTop = list.scrollHeight;
+}
+function list(items) {
+  const ul = document.createElement("ul");
+  for (const i of items) { const li = document.createElement("li"); li.textContent = i; ul.appendChild(li); }
+  return ul;
+}
+function renderHandoff(h) {
+  const box = $("handoff");
+  box.innerHTML = "";
+  const badge = document.createElement("span");
+  badge.className = "badge danger"; badge.textContent = `Escalated to human · ${h.case_id}`;
+  box.appendChild(badge);
+  const s = h.summary, wrap = document.createElement("div");
+  wrap.className = "summary";
+  const sections = [
+    ["Reason for escalation", list(s.reason_for_escalation)],
+    ["Issue", s.issue], ["Customer intent", s.customer_intent], ["Order", s.order],
+    ["History", s.history], ["Current status", s.current_status],
+    ["Actions taken", list(s.actions_taken)], ["Recommended next step", s.recommended_next_step],
+  ];
+  for (const [title, content] of sections) {
+    const h3 = document.createElement("h3"); h3.textContent = title; wrap.appendChild(h3);
+    if (typeof content === "string") { const p = document.createElement("p"); p.textContent = content; wrap.appendChild(p); }
+    else wrap.appendChild(content);
+  }
+  box.appendChild(wrap);
+}
+function resetHandoff() {
+  $("handoff").innerHTML = '<span class="badge ok">Automated</span><p class="empty">No escalation in this conversation.</p>';
+}
+function setContext(ctx) {
+  $("ctx-customer").textContent = ctx.customer_id || "—";
+  $("ctx-order").textContent = ctx.order_id ? `#${ctx.order_id}` : "—";
+  $("ctx-status").textContent = ctx.order_status || "—";
+}
+
+async function startSession() {
+  const r = await fetch("/api/session");
+  const s = await r.json();
+  sessionId = s.session_id; turn = 0;
+  $("customer").textContent = `Customer: ${s.customer_id}`;
+  $("mode").textContent = `Triage: ${s.triage_mode}`;
+  $("web").textContent = `Web search: ${s.web_search ? "on" : "off"}`;
+  $("messages").innerHTML = "";
+  $("activity").innerHTML = '<li class="turn empty">No activity yet.</li>';
+  resetHandoff();
+  setContext({customer_id: s.customer_id});
+  addMessage("agent", "Hi! I can help with order status, tracking, returns, refunds and our policies. How can I help?");
+  renderSuggestions();
+}
+
+async function send(text) {
+  text = (text ?? $("input").value).trim();
+  if (!text || busy) return;
+  busy = true; $("send").disabled = true; $("input").value = "";
+  addMessage("user", text);
+  const typing = addMessage("agent", "Checking…"); typing.classList.add("typing");
+  try {
+    const r = await fetch("/api/chat", {
+      method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({message: text, session_id: sessionId}),
+    });
+    if (!r.ok) throw new Error(`Request failed (${r.status})`);
+    const data = await r.json();
+    typing.remove();
+    turn += 1;
+    addMessage("agent", data.reply);
+    addActivity(data.activity);
+    setContext(data.context);
+    if (data.handoff) renderHandoff(data.handoff);
+    if (data.handed_off) {
+      $("suggestions").innerHTML = "";
+      addMessage("system", "This conversation is now with a human specialist.");
+    }
+  } catch (err) {
+    typing.remove();
+    addMessage("system", `Something went wrong: ${err.message}. Please try again.`);
+  } finally {
+    busy = false; $("send").disabled = false; $("input").focus();
+  }
+}
+
+$("form").addEventListener("submit", (e) => { e.preventDefault(); send(); });
+$("reset").addEventListener("click", startSession);
+startSession();
+</script>
+</body>
+</html>
